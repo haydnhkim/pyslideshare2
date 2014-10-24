@@ -315,7 +315,7 @@ class pyslideshare:
                 username_for = self.params['username']
         return self.make_call('slideshow_by_user', username_for=username_for, offset=offset, limit=limit)
 
-    def get_slideshow(self, slideshow_id=None, **args):
+    def get_slideshow_by_id(self, slideshow_id=None, **args):
         """
         Method to retrieve a slideshow, given an id
         Requires: slideshow_id
@@ -324,6 +324,16 @@ class pyslideshare:
             print >> sys.stderr, 'slideshow_id is needed for this call.'
             sys.exit(1)
         return self.make_call('get_slideshow', slideshow_id=str(slideshow_id), **args)
+
+    def get_slideshow_by_url(self, slideshow_url=None, **args):
+        """
+        Method to retrieve a slideshow, given an url
+        Requires: slideshow_url
+        """
+        if not slideshow_url:
+            print >> sys.stderr, 'slideshow_url is needed for this call.'
+            sys.exit(1)
+        return self.make_call('get_slideshow', slideshow_url=slideshow_url, **args)
 
     def get_slideshow_by_tag(self, tag=None, offset=None, limit=None):
         """
