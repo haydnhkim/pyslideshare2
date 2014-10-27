@@ -35,7 +35,7 @@ API_VERSION = 2
 service_url_dict = {
     'slideshow_by_user' : 'https://www.slideshare.net/api/%d/get_slideshow_by_user' % API_VERSION,
     'get_slideshow' : 'https://www.slideshare.net/api/%d/get_slideshow' % API_VERSION,
-    'slideshow_by_tag' : 'https://www.slideshare.net/api/%d/get_slideshow_by_tag' % API_VERSION,
+    'slideshows_by_tag' : 'https://www.slideshare.net/api/%d/get_slideshows_by_tag' % API_VERSION,
     'slideshow_by_group' : 'https://www.slideshare.net/api/%d/get_slideshow_from_group' % API_VERSION,
     'upload_slideshow' : 'https://www.slideshare.net/api/%d/upload_slideshow' % API_VERSION,
     'delete_slideshow' : 'https://www.slideshare.net/api/%d/delete_slideshow' % API_VERSION
@@ -335,16 +335,16 @@ class pyslideshare:
             sys.exit(1)
         return self.make_call('get_slideshow', slideshow_url=slideshow_url, **args)
 
-    def get_slideshow_by_tag(self, tag=None, offset=None, limit=None):
+    def get_slideshows_by_tag(self, tag=None, offset=None, limit=None, **args):
         """
-        Method to retrieve a slideshow by tag
+        Method to retrieve slideshows by tag
         Requires: tag
         Optional: offset, limit
         """
         if not tag:
             print >> sys.stderr, 'A tag is needed for this call.'
             sys.exit(1)
-        return self.make_call('slideshow_by_tag', tag=tag, offset=offset, limit=limit)
+        return self.make_call('slideshows_by_tag', tag=tag, offset=offset, limit=limit, **args)
 
     def get_slideshow_by_group(self, group_name=None, offset=None, limit=None):
         """
