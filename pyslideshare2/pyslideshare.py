@@ -15,9 +15,14 @@
 
 # Slideshare documentation - http://www.slideshare.net/developers/documentation
 
-import urllib, urllib2
-import mimetools, mimetypes
-import os, stat, time, sys
+import urllib
+import urllib2
+import mimetools
+import mimetypes
+import os
+import stat
+import time
+import sys
 from cStringIO import StringIO
 from hashlib import sha1
 
@@ -32,27 +37,42 @@ socket.setdefaulttimeout(timeout)
 
 API_VERSION = 2
 
+service_base_url = 'https://www.slideshare.net/api/%d' % API_VERSION
 service_url_dict = {
-    'slideshow_by_user' : 'https://www.slideshare.net/api/%d/get_slideshow_by_user' % API_VERSION,
-    'get_slideshow' : 'https://www.slideshare.net/api/%d/get_slideshow' % API_VERSION,
-    'slideshows_by_tag' : 'https://www.slideshare.net/api/%d/get_slideshows_by_tag' % API_VERSION,
-    'slideshow_by_group' : 'https://www.slideshare.net/api/%d/get_slideshow_from_group' % API_VERSION,
-    'upload_slideshow' : 'https://www.slideshare.net/api/%d/upload_slideshow' % API_VERSION,
-    'delete_slideshow' : 'https://www.slideshare.net/api/%d/delete_slideshow' % API_VERSION
+    'slideshow_by_user': '{base_url}/get_slideshow_by_user'.format(
+        base_url=service_base_url
+    ),
+    'get_slideshow': '{base_url}/get_slideshow'.format(
+        base_url=service_base_url
+    ),
+    'slideshows_by_tag': '{base_url}/get_slideshows_by_tag'.format(
+        base_url=service_base_url
+    ),
+    'slideshow_by_group': '{base_url}/get_slideshow_from_group'.format(
+        base_url=service_base_url
+    ),
+    'upload_slideshow': '{base_url}/upload_slideshow'.format(
+        base_url=service_base_url
+    ),
+    'delete_slideshow': '{base_url}/delete_slideshow'.format(
+        base_url=service_base_url
+    )
 }
+
 
 class Callable:
     def __init__(self, anycallable):
         self.__call__ = anycallable
 
-# Controls how sequences are uncoded. If true, elements may be given multiple values by
-#  assigning a sequence.
+# Controls how sequences are uncoded.
+# If true, elements may be given multiple values by assigning a sequence.
 doseq = 1
 
-# Inspiration from http://peerit.blogspot.com/2007/07/multipartposthandler-doesnt-work-for.html
+# Inspiration from
+# http://peerit.blogspot.com/2007/07/multipartposthandler-doesnt-work-for.html
 # Added few bug fixes
 class MultipartPostHandler(urllib2.BaseHandler):
-    handler_order = urllib2.HTTPHandler.handler_order - 10 # needs to run first
+    handler_order = urllib2.HTTPHandler.handler_order - 10  # needs to run first
 
     def http_request(self, request):
         data = request.get_data()
@@ -60,14 +80,17 @@ class MultipartPostHandler(urllib2.BaseHandler):
             v_files = []
             v_vars = []
             try:
-                 for(key, value) in data.items():
-                     if type(value) == file:
-                         v_files.append((key, value))
-                     else:
-                         v_vars.append((key, value))
+                for(key, value) in data.items():
+                    if type(value) == file:
+                        v_files.append((key, value))
+                    else:
+                        v_vars.append((key, value))
             except TypeError:
                 systype, value, traceback = sys.exc_info()
-                raise TypeError, "not a valid non-string sequence or mapping object", traceback
+                raise (
+                    TypeError,
+                    "not a valid non-string sequence or mapping object",
+                    traceback)
 
             if len(v_files) == 0:
                 data = urllib.urlencode(v_vars, doseq)
@@ -75,14 +98,19 @@ class MultipartPostHandler(urllib2.BaseHandler):
                 boundary, data = self.multipart_encode(v_vars, v_files)
 
                 contenttype = 'multipart/form-data; boundary=%s' % boundary
-                if(request.has_header('Content-Type')
-                   and request.get_header('Content-Type').find('multipart/form-data') != 0):
-                    print "Replacing %s with %s" % (request.get_header('content-type'), 'multipart/form-data')
+                if(
+                    request.has_header('Content-Type') and
+                    request.get_header('Content-Type').find(
+                        'multipart/form-data') != 0
+                ):
+                    print "Replacing %s with %s" % (
+                        request.get_header('content-type'),
+                        'multipart/form-data')
                 request.add_unredirected_header('Content-Type', contenttype)
             request.add_data(data)
         return request
 
-    def multipart_encode(vars, files, boundary = None, buf = None):
+    def multipart_encode(vars, files, boundary=None, buf=None):
         if boundary is None:
             boundary = mimetools.choose_boundary()
         if buf is None:
@@ -94,9 +122,12 @@ class MultipartPostHandler(urllib2.BaseHandler):
         for(key, fd) in files:
             file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
             filename = fd.name.split('/')[-1]
-            contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+            contenttype = mimetypes.guess_type(filename)[0] or \
+                'application/octet-stream'
             buf.write('--%s\r\n' % boundary)
-            buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
+            buf.write(
+                'Content-Disposition: form-data;'
+                ' name="%s"; filename="%s"\r\n' % (key, filename))
             buf.write('Content-Type: %s\r\n' % contenttype)
             # buffer += 'Content-Length: %s\r\n' % file_size
             fd.seek(0)
@@ -106,6 +137,7 @@ class MultipartPostHandler(urllib2.BaseHandler):
         return boundary, buf
     multipart_encode = Callable(multipart_encode)
     https_request = http_request
+
 
 class pyslideshare:
 
@@ -140,13 +172,14 @@ class pyslideshare:
         """
         ts = int(time.time())
         tmp_params_dict = {
-                        'api_key' : self.params['api_key'],
-                        'ts' : ts,
-                        'hash' : sha1(self.params['secret_key'] + str(ts)).hexdigest()
+            'api_key': self.params['api_key'],
+            'ts': ts,
+            'hash': sha1(self.params['secret_key'] + str(ts)).hexdigest()
         }
         # Add method specific parameters to the dict.
         for arg in args:
-            # Include only params which has non-null value. Otherwise slideshare is getting screwed up!
+            # Include only params which has non-null value.
+            # Otherwise slideshare is getting screwed up!
             if args[arg] and arg != 'slideshow_srcfile':
                 if isinstance(args[arg], bool):
                     tmp_params_dict[arg] = '1' if args[arg] else '0'
@@ -163,7 +196,8 @@ class pyslideshare:
 
     def parsexml(self, xml):
         """
-        Method which parses the xml returned by slideshare and returns a list of dict.
+        Method which parses the xml returned by slideshare and
+        returns a list of dict.
         Interestingly this is JSON representation of slideshare xml.
         """
         return fromstring(xml)
@@ -180,22 +214,25 @@ class pyslideshare:
 
     def make_auth_call(self, service_url, **args):
         """
-        Simillar to make_call, except this does authentication first. Needed for upload
+        Simillar to make_call, except this does authentication first.
+        Needed for upload
         """
         params = self.get_ss_params(encode=False, **args)
         if args['slideshow_srcfile']:
             params['slideshow_srcfile'] = open(args['slideshow_srcfile'], 'rb')
-        opener = urllib2.build_opener(MultipartPostHandler)  # Use our custom post handler which supports unicode
+        # Use our custom post handler which supports unicode
+        opener = urllib2.build_opener(MultipartPostHandler)
         data = opener.open(service_url_dict[service_url], params).read()
         json = self.parsexml(data)
         return self.return_data(json)
 
     def return_data(self, json):
         """
-        Method to trap slideshare error messages and return data if there are no errors
+        Method to trap slideshare error messages
+        and return data if there are no errors
         """
         if json and hasattr(json, 'SlideShareServiceError'):
-            print >> sys.stderr, 'Slideshare returned the following error - %s' %json.SlideShareServiceError.Message
+            print >> sys.stderr, 'Slideshare returned the following error - %s' % json.SlideShareServiceError.Message
             return None
         return json
 
@@ -204,8 +241,10 @@ class pyslideshare:
             if self.verbose:
                 print 'Using proxy server : ', self.proxy
             # Urllib2 doesn't support https IMHO. Slideshare thankfully is http
-            proxy_support = urllib2.ProxyHandler({'http': 'http://%(username)s:%(password)s@%(host)s:%(port)s' %self.proxy})
-            proxy_opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
+            proxy_support = urllib2.ProxyHandler({
+                'http': 'http://%(username)s:%(password)s@%(host)s:%(port)s' % self.proxy})
+            proxy_opener = urllib2.build_opener(
+                proxy_support, urllib2.HTTPHandler)
             urllib2.install_opener(proxy_opener)
 
     def download_file(self, fetch_url, save_to=None, **args):
@@ -221,12 +260,15 @@ class pyslideshare:
         if not user_login or not user_password:
             print >> sys.stderr, 'Username and password is needed to download.'
             sys.exit(1)
-        login_params = urllib.urlencode( {'user_login' : user_login,
-                                          'user_password' : user_password
-                                        })
+        login_params = urllib.urlencode(
+            {
+                'user_login': user_login,
+                'user_password': user_password
+            })
         LOGIN_URL = 'http://www.slideshare.net/login'
         cj = None
-        self.do_login_and_fetch(cj, COOKIEFILE, LOGIN_URL, login_params, fetch_url, save_to, **args)
+        self.do_login_and_fetch(
+            cj, COOKIEFILE, LOGIN_URL, login_params, fetch_url, save_to, **args)
 
     def do_login_and_fetch(self, cj, COOKIEFILE, LOGIN_URL, login_params, fetch_url, save_to, **args):
         """
@@ -264,10 +306,12 @@ class pyslideshare:
                 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
                 urllib2.install_opener(opener)
             else:
-                opener = ClientCookie.build_opener(ClientCookie.HTTPCookieProcessor(cj))
+                opener = ClientCookie.build_opener(
+                    ClientCookie.HTTPCookieProcessor(cj))
                 ClientCookie.install_opener(opener)
 
-        headers =  {'User-agent' : 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
+        headers = {
+            'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
         request = Request(LOGIN_URL, login_params, headers)
         handle = urlopen(request)
         if cj:
@@ -285,12 +329,12 @@ class pyslideshare:
         ext = self.get_extension(type)
         if not save_to:
             save_to = fetch_url.split('/')[-2] + '.'
-        save_to = save_to + ext
+        save_to += ext
         fp = open(save_to, 'wb')
         fp.write(data)
         fp.close()
         if self.verbose:
-            print 'Presentation downloaded and saved to %s' %save_to
+            print 'Presentation downloaded and saved to %s' % save_to
 
     def get_extension(self, type):
         """
@@ -303,7 +347,7 @@ class pyslideshare:
     ##############################
     # List of api calls supported by slideshare
     ##############################
-    def get_slideshow_by_user(self, username_for=None,offset=None,limit=None):
+    def get_slideshow_by_user(self, username_for=None, offset=None, limit=None):
         """
         Method to get all slideshows created by an user
         Requires: username_for
@@ -311,9 +355,11 @@ class pyslideshare:
         """
         if not username_for:
             if self.verbose:
-                print 'No username specified. Using the default : %s' %self.params['username']
+                print 'No username specified. Using the default : %s' % self.params['username']
                 username_for = self.params['username']
-        return self.make_call('slideshow_by_user', username_for=username_for, offset=offset, limit=limit)
+        return self.make_call(
+            'slideshow_by_user', username_for=username_for,
+            offset=offset, limit=limit)
 
     def get_slideshow_by_id(self, slideshow_id=None, **args):
         """
@@ -323,7 +369,8 @@ class pyslideshare:
         if not slideshow_id:
             print >> sys.stderr, 'slideshow_id is needed for this call.'
             sys.exit(1)
-        return self.make_call('get_slideshow', slideshow_id=str(slideshow_id), **args)
+        return self.make_call(
+            'get_slideshow', slideshow_id=str(slideshow_id), **args)
 
     def get_slideshow_by_url(self, slideshow_url=None, **args):
         """
@@ -333,7 +380,8 @@ class pyslideshare:
         if not slideshow_url:
             print >> sys.stderr, 'slideshow_url is needed for this call.'
             sys.exit(1)
-        return self.make_call('get_slideshow', slideshow_url=slideshow_url, **args)
+        return self.make_call(
+            'get_slideshow', slideshow_url=slideshow_url, **args)
 
     def get_slideshows_by_tag(self, tag=None, offset=None, limit=None, **args):
         """
@@ -344,7 +392,8 @@ class pyslideshare:
         if not tag:
             print >> sys.stderr, 'A tag is needed for this call.'
             sys.exit(1)
-        return self.make_call('slideshows_by_tag', tag=tag, offset=offset, limit=limit, **args)
+        return self.make_call(
+            'slideshows_by_tag', tag=tag, offset=offset, limit=limit, **args)
 
     def get_slideshow_by_group(self, group_name=None, offset=None, limit=None):
         """
@@ -355,20 +404,28 @@ class pyslideshare:
         if not group_name:
             print >> sys.stderr, 'Group name is needed for this call.'
             sys.exit(1)
-        return self.make_call('slideshow_by_group', group_name=group_name, offset=offset, limit=limit)
+        return self.make_call(
+            'slideshow_by_group', group_name=group_name,
+            offset=offset, limit=limit)
 
     def upload_slideshow(self, username=None, password=None,
-                         slideshow_title=None, slideshow_srcfile=None, upload_url=None, slideshow_description=None,
-                         slideshow_tags=None, make_src_public='Y', make_slideshow_private='N',
-                         generate_secret_url='N', allow_embeds='Y', share_with_contacts='Y'):
+                         slideshow_title=None, slideshow_srcfile=None,
+                         upload_url=None, slideshow_description=None,
+                         slideshow_tags=None, make_src_public='Y',
+                         make_slideshow_private='N',
+                         generate_secret_url='N', allow_embeds='Y',
+                         share_with_contacts='Y'):
         """
-        Method to upload a new slideshow. Since slideshare does batch encoding,
-        the value returned will be an id. Use get_slideshow to get the exact status
+        Method to upload a new slideshow.
+        Since slideshare does batch encoding, the value returned will be an id.
+        Use get_slideshow to get the exact status
         Requires: username, password, slideshow_title, slideshow_srcfile
         Optional: slideshow_description, slideshow_tags, make_src_public,
-make_slideshow_private, generate_secret_url, allow_embeds, share_with_contacts
+            make_slideshow_private, generate_secret_url,
+            allow_embeds, share_with_contacts
         """
-        if not username or not password or not slideshow_title or not (slideshow_srcfile or upload_url):
+        if not username or not password or not slideshow_title or \
+                not (slideshow_srcfile or upload_url):
             print >> sys.stderr, 'Required parameters missing.'
             sys.exit(1)
         if slideshow_srcfile and not os.path.exists(slideshow_srcfile):
@@ -378,11 +435,15 @@ make_slideshow_private, generate_secret_url, allow_embeds, share_with_contacts
         method = self.make_auth_call if slideshow_srcfile else self.make_call
 
         return method('upload_slideshow', username=username, password=password,
-                      slideshow_title=slideshow_title, slideshow_srcfile=slideshow_srcfile,
+                      slideshow_title=slideshow_title,
+                      slideshow_srcfile=slideshow_srcfile,
                       upload_url=upload_url,
-                      slideshow_description=slideshow_description, slideshow_tags=slideshow_tags,
-                      make_src_public=make_src_public, make_slideshow_private=make_slideshow_private,
-                      generate_secret_url=generate_secret_url, allow_embeds=allow_embeds,
+                      slideshow_description=slideshow_description,
+                      slideshow_tags=slideshow_tags,
+                      make_src_public=make_src_public,
+                      make_slideshow_private=make_slideshow_private,
+                      generate_secret_url=generate_secret_url,
+                      allow_embeds=allow_embeds,
                       share_with_contacts=share_with_contacts)
 
     def delete_slideshow(self, slideshow_id=None):
@@ -420,26 +481,29 @@ make_slideshow_private, generate_secret_url, allow_embeds, share_with_contacts
             print >> sys.stderr, 'Slideshow not yet available!'
             return
         link = json.Slideshows.Slideshow.Permalink
-        download_link = download_link %dict(link=link)
+        download_link = download_link % dict(link=link)
         self.download_file(download_link, **args)
 
     ##############################
     # End of unsupported list
     ##############################
 
+
 def main():
     # Slideshare username needed for upload
     username = ''
     # Slideshare password
     password = ''
-    # Slideshare api. Apply for one here - http://www.slideshare.net/developers/applyforapi
+    # Slideshare api.
+    # Apply for one here - http://www.slideshare.net/developers/applyforapi
     api_key = ''
     # Slideshare shared secret key
     secret_key = ''
     proxy = None
 
     """
-    If you want to use a proxy server, pass a dict like the one below to the constructor.
+    If you want to use a proxy server,
+    pass a dict like the one below to the constructor.
     proxy = {
         'host' : '',
         'port' : '',
@@ -456,7 +520,11 @@ def main():
     #print obj.get_slideshow_by_user()
 
     #print obj.get_slideshow(slideshow_id=436333)
-    print obj.get_slideshow(slideshow_id=10460699, username=username, password=password, detailed=True)
+    print obj.get_slideshow(
+        slideshow_id=10460699,
+        username=username,
+        password=password,
+        detailed=True)
     #print obj.get_slideshow_by_group(group_name='friendfeed', limit=2)
     #print obj.upload_slideshow(username=username, password=password, slideshow_srcfile='test.ppt',
     #                           slideshow_title='pyslideshare works!')
@@ -464,5 +532,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
