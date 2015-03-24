@@ -185,8 +185,8 @@ class pyslideshare:
         params = self.get_ss_params(encode=False, **args)
         if args['slideshow_srcfile']:
             params['slideshow_srcfile'] = open(args['slideshow_srcfile'], 'rb')
+        opener = urllib2.build_opener(MultipartPostHandler)  # Use our custom post handler which supports unicode
         data = opener.open(service_url_dict[service_url], params).read()
-        opener = urllib2.build_opener(MultipartPostHandler) # Use our custom post handler which supports unicode
         json = self.parsexml(data)
         return self.return_data(json)
 
